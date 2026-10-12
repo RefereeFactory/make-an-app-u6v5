@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeline Notes — remember everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f4ef;
+    --card:#ffffff;
+    --ink:#2b2a27;
+    --muted:#79766e;
+    --accent:#c0703e;
+    --accent-dark:#9a5529;
+    --line:#e6e2d9;
+    --soft:#efe9df;
+    --shadow:0 8px 28px rgba(60,50,30,0.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    line-height:1.6;
+  }
+  h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;line-height:1.2;margin:0}
+  a{color:var(--accent-dark)}
+
+  /* Hero */
+  header.hero{
+    background:linear-gradient(160deg,#2b2a27 0%,#3c3630 60%,#4a3b2e 100%);
+    color:#f6f4ef;padding:54px 22px 48px;text-align:center;position:relative;overflow:hidden;
+  }
+  header.hero::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 80% 20%,rgba(192,112,62,0.35),transparent 50%);
+    pointer-events:none;
+  }
+  .hero .badge{
+    display:inline-block;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;
+    color:#e7c3a4;border:1px solid rgba(231,195,164,.4);border-radius:999px;padding:6px 14px;margin-bottom:18px;
+  }
+  .hero h1{font-size:2.5rem;margin-bottom:12px}
+  .hero p{max-width:560px;margin:0 auto;color:#d9d3c8;font-size:1.05rem}
+  @media(min-width:760px){ .hero h1{font-size:3.4rem} header.hero{padding:76px 22px 64px} }
+
+  main{max-width:960px;margin:0 auto;padding:0 18px}
+
+  /* Composer */
+  .composer{
+    background:var(--card);border-radius:18px;box-shadow:var(--shadow);
+    padding:22px;margin:-34px auto 28px;position:relative;z-index:2;border:1px solid var(--line);
+  }
+  @media(min-width:760px){ .composer{padding:28px} }
+  .composer h2{font-size:1.25rem;margin-bottom:14px}
+  label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
+  input[type=text],textarea,input[type=datetime-local],select{
+    width:100%;font-family:inherit;font-size:1rem;color:var(--ink);
+    background:#fbfaf6;border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    transition:border .15s,box-shadow .15s;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(192,112,62,.15)}
+  textarea{resize:vertical;min-height:90px}
+  .row{display:grid;gap:14px;margin-bottom:14px}
+  @media(min-width:620px){ .row.two{grid-template-columns:1fr 1fr} }
+  .btn{
+    font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;border:none;
+    background:var(--accent);color:#fff;border-radius:12px;padding:13px 22px;min-height:46px;
+    transition:background .15s,transform .05s;
+  }
+  .btn:hover{background:var(--accent-dark)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--accent-dark);border:1px solid var(--line)}
+  .btn.ghost:hover{background:var(--soft)}
+  .composer-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .saveind{font-size:.82rem;color:var(--muted);margin-left:auto}
+  .saveind.show{color:var(--accent-dark)}
+
+  /* Controls bar */
+  .controls{
+    display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:24px 0 16px;
+  }
+  .controls .search{flex:1;min-width:180px;position:relative}
+  .controls .search input{padding-left:40px}
+  .controls .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;opacity:.5}
+  .controls select{max-width:200px}
+  .count{font-size:.85rem;color:var(--muted)}
+
+  /* Notes */
+  .timeline{margin:0 0 50px;padding:0;list-style:none}
+  .daygroup{margin-bottom:26px}
+  .dayhead{
+    font-family:'Fraunces',serif;font-size:1.05rem;color:var(--accent-dark);
+    display:flex;align-items:center;gap:12px;margin:0 2px 14px;
+  }
+  .dayhead::after{content:"";flex:1;height:1px;background:var(--line)}
+  .note{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+    padding:18px 18px 16px;margin-bottom:14px;position:relative;
+    animation:pop .25s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .note .ntop{display:flex;align-items:flex-start;gap:12px;justify-content:space-between}
+  .note h3{font-size:1.15rem;word-break:break-word}
+  .note .ntime{font-size:.8rem;color:var(--muted);font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .note .tag{
+    display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+    background:var(--soft);color:var(--accent-dark);border-radius:999px;padding:3px 10px;margin-top:10px;
+  }
+  .note .body{margin:10px 0 4px;color:#3f3c37;white-space:pre-wrap;word-break:break-word}
+  .note .nactions{display:flex;gap:8px;margin-top:12px}
+  .iconbtn{
+    background:none;border:1px solid var(--line);border-radius:9px;padding:6px 12px;cursor:pointer;
+    font-size:.82rem;font-weight:600;color:var(--muted);font-family:inherit;min-height:34px;transition:.15s;
+  }
+  .iconbtn:hover{background:var(--soft);color:var(--ink)}
+  .iconbtn.del:hover{background:#f7e3dc;color:#b23b1b;border-color:#e9c4b8}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--muted)}
+  .empty .big{font-size:2.4rem;margin-bottom:10px}
+
+  /* Pay */
+  .sell{max-width:960px;margin:10px auto 0;padding:0 18px}
+  .sell-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:24px;margin-bottom:34px}
+  .sell-card h2{font-size:1.4rem;margin-bottom:6px}
+  .sell-card p{color:var(--muted);margin:0 0 16px}
+  .factory-pay-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .factory-pay-item:last-child{border-bottom:none}
+  .factory-pay-name{font-weight:600;flex:1}
+  .factory-pay-price{font-family:'Fraunces',serif;font-size:1.1rem;color:var(--accent-dark)}
+  .factory-pay-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:600;cursor:pointer;font-family:inherit;min-height:42px}
+  .factory-pay-btn:hover{background:var(--accent-dark)}
+
+  /* How it works */
+  .how{background:#272522;color:#e8e3d9;padding:46px 18px}
+  .how-inner{max-width:900px;margin:0 auto}
+  .how h2{color:#fff;font-size:1.6rem;margin-bottom:22px;text-align:center}
+  .how-grid{display:grid;gap:20px}
+  @media(min-width:680px){ .how-grid{grid-template-columns:repeat(3,1fr)} }
+  .how-step{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px}
+  .how-step .num{font-family:'Fraunces',serif;font-size:1.6rem;color:var(--accent);display:block;margin-bottom:8px}
+  .how-step p{margin:0;color:#c8c2b6;font-size:.94rem}
+  footer{text-align:center;padding:26px 18px;color:var(--muted);font-size:.85rem}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+</style>
+<script id="factory-store-sdk">
+window.factory=(function(){
+var K="2ac38f41-2306-4665-9435-4b8da2a48b16",U="https://canvbkibjgcnqowjtarf.supabase.co/functions/v1/app-market",A="sb_publishable_sMTQKIeFgT1vwjHnU7Gexg_8CCmhtxs";
+function call(b){b.appKey=K;return fetch(U,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+A},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||("store "+r.status));return d;});});}
+var S={
+put:function(c,i,d){return call({op:"put",collection:c,id:String(i),data:d}).then(function(x){return x.doc?x.doc.data:null;});},
+get:function(c,i){return call({op:"get",collection:c,id:String(i)}).then(function(x){return x.doc?x.doc.data:null;});},
+list:function(c){return call({op:"list",collection:c}).then(function(x){return x.docs.map(function(d){return d.data;});});},
+remove:function(c,i){return call({op:"delete",collection:c,id:String(i)}).then(function(){return true;});},
+unlock:function(code){return call({op:"redeem",code:String(code)}).then(function(x){try{localStorage.setItem("factory_access",x.status);}catch(e){}return x.status;});},
+access:function(){try{return localStorage.getItem("factory_access")||"none";}catch(e){return "none";}}
+};
+var _c=null;try{var h=(location.hash||"").match(/factory_code=([a-z0-9-]+)/i);_c=h?h[1]:localStorage.getItem("factory_code");if(h){history.replaceState(null,"",location.pathname+location.search);}}catch(e){}
+var F={put:S.put,get:S.get,list:S.list,remove:S.remove,unlock:S.unlock,access:S.access};
+F.ready=_c?S.unlock(_c).then(function(s){try{if(s!=="invalid")localStorage.setItem("factory_code",_c);}catch(e){}return s;}).catch(function(){return S.access();}):Promise.resolve(S.access());
+return F;})();
+</script>
+<script id="factory-pay-sdk">
+(function(){
+var R="make-an-app-u6v5",U="https://canvbkibjgcnqowjtarf.supabase.co/functions/v1/app-pay",P=String.fromCharCode(163);
+function call(b){return fetch(U,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||("pay "+r.status));return d;});});}
+function money(p){return P+(Number(p)/100).toFixed(2);}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=String(x);return e;}
+function say(text,good){var b=document.getElementById("factory-pay-banner");if(!b){b=el("div");b.id="factory-pay-banner";b.setAttribute("role","status");b.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483000;max-width:520px;margin:0 auto;padding:14px 16px;border-radius:12px;font:600 15px/1.4 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.35);cursor:pointer;";b.onclick=function(){b.remove();};document.body.appendChild(b);}b.style.background=good?"#0f5132":"#332b00";b.style.color="#fff";b.textContent=text;}
+var OP=null;try{var ph=(location.hash||"").match(/factory_owner=([A-Za-z0-9._-]+)/);if(ph){OP=ph[1];sessionStorage.setItem("factory_owner_pass",OP);history.replaceState(null,"",location.pathname+location.search);}else{OP=sessionStorage.getItem("factory_owner_pass");}}catch(e){}
+var _p=null;function products(){if(!_p)_p=call({op:"products",repo:R,owner_pass:OP});return _p;}
+var C=U.replace(/app-pay$/,"app-crypto-desk");function ccall(b){return fetch(C,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||("pay "+r.status));return d;});});}
+var _o=null;function offer(){if(!_o)_o=ccall({op:"offer",repo:R}).catch(function(){return {active:false,coins:[]};});return _o;}
+function cpanel(x,row,o){var old=row.querySelector(".factory-pay-cpanel");if(old){old.remove();return;}var p=el("div","factory-pay-cpanel");p.style.cssText="flex-basis:100%;padding:10px;border:1px solid currentColor;border-radius:.6em;font-size:.95em;line-height:1.5;";
+var sel=el("select");o.coins.forEach(function(c){var op=el("option","",c.label);op.value=c.coin;sel.appendChild(op);});var em=el("input");em.type="email";em.placeholder="Your email (so the seller can reach you)";em.style.cssText="margin:6px 0;width:100%;box-sizing:border-box;padding:.5em;";
+var go=el("button","factory-pay-btn","SHOW THE AMOUNT");go.type="button";var out=el("div");out.style.marginTop="8px";if(o.notice){var n=el("div","",o.notice);n.style.cssText="opacity:.85;margin-bottom:6px;";p.appendChild(n);}
+p.appendChild(el("div","","Pay "+money(x.price_pence)+" with crypto, straight to the seller's wallet:"));p.appendChild(sel);p.appendChild(em);p.appendChild(go);p.appendChild(out);row.appendChild(p);
+go.onclick=function(){go.disabled=true;out.textContent="Checking the rate with two sources…";ccall({op:"quote",product_id:x.id,coin:sel.value,email:em.value}).then(function(q){var od=q.order;out.textContent="";
+out.appendChild(el("div","","Send exactly"));var amt=el("div","",od.amount+" "+od.coin);amt.style.cssText="font-size:1.4em;font-weight:800;font-family:ui-monospace,Menlo,monospace;";out.appendChild(amt);out.appendChild(el("div","","to this "+od.label+" address of the seller:"));var ad=el("div","",od.address);ad.style.cssText="word-break:break-all;font-family:ui-monospace,Menlo,monospace;padding:.4em;border:1px dashed currentColor;border-radius:.4em;";out.appendChild(ad);
+var cp=el("button","factory-pay-btn","COPY ADDRESS");cp.type="button";cp.onclick=function(){try{navigator.clipboard.writeText(od.address);cp.textContent="COPIED";}catch(e){}};var ca=el("button","factory-pay-btn","COPY AMOUNT");ca.type="button";ca.onclick=function(){try{navigator.clipboard.writeText(od.amount);ca.textContent="COPIED";}catch(e){}};var bar=el("div");bar.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;";bar.appendChild(cp);bar.appendChild(ca);if(od.uri){var w=document.createElement("a");w.href=od.uri;w.className="factory-pay-btn";w.textContent="OPEN IN WALLET";w.style.textDecoration="none";bar.appendChild(w);}out.appendChild(bar);
+var st=el("div","",q.by_hand?"Waiting for your payment. For this coin the seller checks their wallet and confirms by hand.":"Waiting for your payment. This page watches the ledger for you. Amount valid for "+q.minutes+" minutes.");out.appendChild(st);
+var t=setInterval(function(){ccall({op:"status",id:od.id}).then(function(r){var s=r.order||{};if(s.status==="paid"){clearInterval(t);st.textContent="✓ Paid, thank you. The seller has been told.";say("Paid, thank you: "+x.name+" "+money(x.price_pence),true);try{window.dispatchEvent(new CustomEvent("factory:paid",{detail:{product:x.name,amount_pence:x.price_pence,crypto:true}}));}catch(e){}}
+else if(s.status==="confirmed")st.textContent="Confirmed on the ledger. Finishing…";else if(s.status==="seen")st.textContent="Payment seen on the ledger ("+s.confirmations+" confirmation"+(s.confirmations===1?"":"s")+"). Waiting for the network to confirm it.";else if(s.status==="short")st.textContent="Received "+s.received+" "+s.coin+", less than the amount due. Please send the difference to the same address.";else if(s.status==="expired"){clearInterval(t);st.textContent="This amount has expired. Press SHOW THE AMOUNT again. Coins already sent are still counted when they arrive.";}}).catch(function(){});},20000);
+}).catch(function(e){go.disabled=false;out.textContent=e.message||"Could not get an amount. Nothing is owed.";});};}
+function buy(id,btn){if(btn){btn.disabled=true;}return call({op:"checkout",product_id:id,return_url:location.origin+location.pathname}).then(function(d){location.href=d.url;}).catch(function(e){if(btn){btn.disabled=false;}say(e.message||"Payment could not be started. Nothing was taken.",false);});}
+function mount(host){if(!host||host.getAttribute("data-factory-pay-done"))return Promise.resolve();host.setAttribute("data-factory-pay-done","1");var want=(host.getAttribute("data-factory-pay")||"").trim().toLowerCase();
+return Promise.all([products(),offer()]).then(function(pr){var d=pr[0],o=pr[1]||{};var cryptoOn=!!(o.active&&o.coins&&o.coins.length);var list=(d.products||[]).filter(function(x){return !want||String(x.name).trim().toLowerCase()===want;});host.textContent="";
+if(!list.length&&d.sample&&!d.sample.dismissed&&!want){var S=d.sample,own=!!d.owner;var sp=el("div","factory-pay-item factory-pay-sample");sp.style.position="relative";
+var nm=el("span","factory-pay-name",S.name),pr=el("span","factory-pay-price",money(S.price_pence)),ds=el("span","factory-pay-desc",own?(S.owner_desc||"Describe what you sell here (click to change this text)"):S.description);
+if(own){var hd=el("div","factory-pay-configure","CONFIGURE YOUR PRODUCT");hd.style.cssText="flex-basis:100%;font-weight:800;letter-spacing:.06em;font-size:.85em;";var ex=el("div","factory-pay-desc",S.owner_hint||"Click the name, the description and the price below and type your own, then press SAVE. Your visitors see a Pay button; they pay on a secure card page; the money goes to your own account and The Factory keeps its stated fee. Add more products any time in your Factory account (Your apps -> Products). Not selling? Press the x; ask Help to bring it back, free.");sp.appendChild(hd);sp.appendChild(ex);
+nm.contentEditable="true";ds.contentEditable="true";pr.contentEditable="true";nm.title="Click to change the name";ds.title="Click to change the description";pr.title="Click to change the price";nm.style.outline=ds.style.outline=pr.style.outline="1px dashed currentColor";nm.style.padding=ds.style.padding=pr.style.padding="0 .3em";
+var sv=el("button","factory-pay-btn","SAVE MY PRODUCT");sv.type="button";sv.onclick=function(){var n=(nm.textContent||"").trim(),p=Math.round(parseFloat(String(pr.textContent||"").replace(/[^0-9.]/g,""))*100);if(!n){say("Give the product a name first.",false);return;}if(!(p>=50)){say("A price of at least 50p, please (type it like 12.50).",false);return;}sv.disabled=true;
+call({op:"product-save",repo:R,owner_pass:OP,name:n,description:(ds.textContent||"").trim(),price_pence:p}).then(function(){say("Saved. "+n+" is on sale at "+money(p)+".",true);host.removeAttribute("data-factory-pay-done");mount(host);}).catch(function(e){sv.disabled=false;say(e.message||"Could not save.",false);});};
+sp.appendChild(nm);sp.appendChild(ds);sp.appendChild(pr);sp.appendChild(sv);
+if(!d.seller_ready){var gp=el("button","factory-pay-btn","WHERE MY MONEY GOES — set up with Stripe"+(d.payouts_started?" (finish)":""));gp.type="button";gp.style.flexBasis="100%";gp.onclick=function(){gp.disabled=true;call({op:"owner-onboard",repo:R,owner_pass:OP}).then(function(x){location.href=x.url;}).catch(function(e){gp.disabled=false;say(e.message||"Press GET PAID on the Factory instead.",false);});};sp.appendChild(gp);}
+}else{sp.appendChild(nm);sp.appendChild(ds);sp.appendChild(pr);var sb2=el("button","factory-pay-btn","Pay "+money(S.price_pence));sb2.type="button";sb2.onclick=function(){say(S.note||"This is a sample. The owner lists real products in their Factory account; payment then opens on a secure card page.",true);};sp.appendChild(sb2);}
+var x=el("button","factory-pay-close","×");x.type="button";x.title="Not selling here";x.setAttribute("aria-label","Remove the product box");x.style.cssText="position:absolute;top:2px;right:2px;border:0;background:transparent;font-size:1.3em;line-height:1;cursor:pointer;opacity:.7;";
+x.onclick=function(){call({op:"sample-dismiss",repo:R}).then(function(){sp.innerHTML="";sp.appendChild(el("span","factory-pay-soon",S.bye||"You can always bring this facility back by asking Help how."));setTimeout(function(){sp.remove();},9000);}).catch(function(){sp.remove();});};sp.appendChild(x);host.appendChild(sp);return;}
+list.forEach(function(x){var row=el("div","factory-pay-item");row.appendChild(el("span","factory-pay-name",x.name));if(x.description)row.appendChild(el("span","factory-pay-desc",x.description));row.appendChild(el("span","factory-pay-price",money(x.price_pence)));
+if(d.open&&d.seller_ready){var b=el("button","factory-pay-btn","Pay "+money(x.price_pence));b.type="button";b.onclick=function(){buy(x.id,b);};row.appendChild(b);}else if(!cryptoOn){row.appendChild(el("span","factory-pay-soon","Payments open here soon"));}
+if(cryptoOn){var cb=el("button","factory-pay-btn factory-pay-crypto","Pay with crypto");cb.type="button";cb.onclick=function(){cpanel(x,row,o);};row.appendChild(cb);}
+host.appendChild(row);});}).catch(function(){host.textContent="";});}
+function mountAll(){var n=document.querySelectorAll("[data-factory-pay]");for(var i=0;i<n.length;i++)mount(n[i]);}
+function back(){var m=(location.search||"").match(/[?&]paid=([A-Za-z0-9_]+)/);if(!m)return;var v=m[1];try{history.replaceState(null,"",location.pathname+location.hash);}catch(e){}
+if(v==="no"){say("Payment cancelled. Nothing was taken.",false);return;}if(v.indexOf("cs_")!==0)return;var tries=0;
+(function ask(){call({op:"order",session_id:v}).then(function(d){var o=d.order||{};if(o.status==="paid"){say("Paid, thank you: "+o.product_name+" "+money(o.gross_pence),true);try{window.dispatchEvent(new CustomEvent("factory:paid",{detail:{product:o.product_name,amount_pence:o.gross_pence}}));}catch(e){}}
+else if(o.status==="pending"&&++tries<8){setTimeout(ask,2000);}else if(o.status==="pending"){say("Thank you. Your payment is being confirmed.",true);}}).catch(function(){if(++tries<4)setTimeout(ask,2000);});})();}
+var st=document.createElement("style");st.textContent=":where(.factory-pay-item){display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:8px 0}:where(.factory-pay-name){font-weight:600}:where(.factory-pay-desc){flex-basis:100%;opacity:.8;font-size:.92em}:where(.factory-pay-price){margin-left:auto}:where(.factory-pay-btn){cursor:pointer;padding:.6em 1.1em;border-radius:.6em;border:0;font:inherit;font-weight:700}:where(.factory-pay-soon){opacity:.7;font-size:.9em}";document.head.appendChild(st);
+window.factory=window.factory||{};window.factory.pay={products:products,buy:buy,mount:mount};
+function go(){back();mountAll();}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();
+})();
+</script>
+</head>
+<body>
+<header class="hero">
+  <span class="badge">Your memory, kept safe</span>
+  <h1>Timeline Notes</h1>
+  <p>Jot down anything — a thought, a task, a moment — stamped with its date and time, and kept forever in order. Nothing slips through.</p>
+</header>
+
+<main>
+  <!-- Composer -->
+  <section class="composer" aria-labelledby="composeTitle">
+    <h2 id="composeTitle">Add a note</h2>
+    <form id="noteForm">
+      <div class="row">
+        <div>
+          <label for="title">Title</label>
+          <input type="text" id="title" placeholder="e.g. Called the dentist" required maxlength="120" autocomplete="off">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="body">Details <span style="font-weight:400;color:#b4afa4">(optional)</span></label>
+          <textarea id="body" placeholder="Write as much or as little as you like…" maxlength="4000"></textarea>
+        </div>
+      </div>
+      <div class="row two">
+        <div>
+          <label for="when">Date &amp; time</label>
+          <input type="datetime-local" id="when" required>
+        </div>
+        <div>
+          <label for="tag">Category</label>
+          <select id="tag">
+            <option value="General">General</option>
+            <option value="Work">Work</option>
+            <option value="Personal">Personal</option>
+            <option value="Health">Health</option>
+            <option value="Ideas">Ideas</option>
+            <option value="Finance">Finance</option>
+            <option value="To-do">To-do</option>
+          </select>
+        </div>
+      </div>
+      <div class="composer-actions">
+        <button type="submit" class="btn" id="saveBtn">Save note</button>
+        <button type="button" class="btn ghost" id="cancelEdit" style="display:none">Cancel edit</button>
+        <span class="saveind" id="saveInd" aria-live="polite"></span>
+      </div>
+    </form>
+  </section>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <label class="sr-only" for="search">Search notes</label>
+      <input type="text" id="search" placeholder="Search notes…" autocomplete="off">
+    </div>
+    <label class="sr-only" for="filterTag">Filter by category</label>
+    <select id="filterTag">
+      <option value="">All categories</option>
+      <option>General</option><option>Work</option><option>Personal</option>
+      <option>Health</option><option>Ideas</option><option>Finance</option><option>To-do</option>
+    </select>
+    <label class="sr-only" for="sortBy">Sort order</label>
+    <select id="sortBy">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+    </select>
+  </div>
+  <div class="count" id="count"></div>
+
+  <ul class="timeline" id="timeline"></ul>
+</main>
+
+<!-- The one pay slot -->
+<section class="sell">
+  <div class="sell-card">
+    <h2>Keep more, do more</h2>
+    <p>Optional upgrades for your note-keeping, offered by the owner of this app.</p>
+    <div data-factory-pay></div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="how-inner">
+    <h2>How it works</h2>
+    <div class="how-grid">
+      <div class="how-step">
+        <span class="num">1</span>
+        <p>Write a title, add any details, pick the date and time it belongs to, and choose a category. Hit <strong>Save note</strong>.</p>
+      </div>
+      <div class="how-step">
+        <span class="num">2</span>
+        <p>Your notes line up on a tidy timeline, grouped by day. Search the text, filter by category, or flip between newest and oldest first.</p>
+      </div>
+      <div class="how-step">
+        <span class="num">3</span>
+        <p>Everything is saved permanently to secure cloud storage, so your record is waiting for you every time you return — on any device.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Timeline Notes · your thoughts, kept gently and in order.
+</footer>
+
+<script>
+const F = window.factory;
+let notes = [];
+let editingId = null;
+
+const $ = id => document.getElementById(id);
+const form = $('noteForm'), timeline = $('timeline');
+
+// default datetime = now
+function setDefaultWhen(){
+  const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  $('when').value = d.toISOString().slice(0,16);
+}
+setDefaultWhen();
+
+function saveIndicator(text, persist){
+  const el = $('saveInd'); el.textContent = text; el.classList.add('show');
+  if(!persist) setTimeout(()=>{el.classList.remove('show');el.textContent='';}, 1800);
+}
+
+async function load(){
+  try{
+    // speed cache
+    const cached = localStorage.getItem('tn_notes');
+    if(cached){ notes = JSON.parse(cached); render(); }
+    const list = await F.list('notes');
+    notes = list.map(d => d);
+    localStorage.setItem('tn_notes', JSON.stringify(notes));
+    render();
+  }catch(e){
+    if(!notes.length){
+      timeline.innerHTML = '<li class="empty"><div class="big">⚠️</div><p>Could not load your notes. Please check your connection and refresh.</p></li>';
+    }
+  }
+}
+
+form.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const title = $('title').value.trim();
+  const whenVal = $('when').value;
+  if(!title || !whenVal) return;
+  const id = editingId || String(Date.now());
+  const doc = {
+    id,
+    title,
+    body: $('body').value.trim(),
+    when: whenVal,                       // local datetime string
+    whenTs: new Date(whenVal).getTime(),
+    tag: $('tag').value,
+    created: editingId ? (notes.find(n=>n.id===id)?.created || Date.now()) : Date.now()
+  };
+  $('saveBtn').disabled = true;
+  saveIndicator('Saving…', true);
+  try{
+    await F.put('notes', id, doc);
+    const i = notes.findIndex(n=>n.id===id);
+    if(i>=0) notes[i]=doc; else notes.push(doc);
+    localStorage.setItem('tn_notes', JSON.stringify(notes));
+    saveIndicator('Saved ✓');
+    resetForm();
+    render();
+  }catch(err){
+    saveIndicator('Save failed — try again');
+  }finally{
+    $('saveBtn').disabled = false;
+  }
+});
+
+function resetForm(){
+  editingId = null;
+  form.reset();
+  $('tag').value = 'General';
+  $('saveBtn').textContent = 'Save note';
+  $('cancelEdit').style.display = 'none';
+  setDefaultWhen();
+}
+$('cancelEdit').addEventListener('click', ()=>{ resetForm(); saveIndicator(''); });
+
+function startEdit(id){
+  const n = notes.find(x=>x.id===id); if(!n) return;
+  editingId = id;
+  $('title').value = n.title;
+  $('body').value = n.body||'';
+  $('when').value = n.when;
+  $('tag').value = n.tag||'General';
+  $('saveBtn').textContent = 'Update note';
+  $('cancelEdit').style.display = 'inline-block';
+  document.querySelector('.composer').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function del(id){
+  const n = notes.find(x=>x.id===id);
+  if(!confirm('Delete "'+(n?n.title:'this note')+'"? This cannot be undone.')) return;
+  saveIndicator('Deleting…', true);
+  try{
+    await F.remove('notes', id);
+    notes = notes.filter(x=>x.id!==id);
+    localStorage.setItem('tn_notes', JSON.stringify(notes));
+    saveIndicator('Deleted');
+    if(editingId===id) resetForm();
+    render();
+  }catch(e){ saveIndicator('Delete failed'); }
+}
+
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function fmtDay(ts){
+  const d = new Date(ts);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dd = new Date(d); dd.setHours(0,0,0,0);
+  const diff = Math.round((dd-today)/86400000);
+  const base = d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(diff===0) return 'Today · '+base;
+  if(diff===-1) return 'Yesterday · '+base;
+  if(diff===1) return 'Tomorrow · '+base;
+  return base;
+}
+function fmtTime(ts){
+  return new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+
+function render(){
+  const q = $('search').value.trim().toLowerCase();
+  const ft = $('filterTag').value;
+  const sort = $('sortBy').value;
+
+  let list = notes.filter(n=>{
+    if(ft && n.tag!==ft) return false;
+    if(q){
+      const hay = (n.title+' '+(n.body||'')+' '+(n.tag||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  list.sort((a,b)=> sort==='newest' ? b.whenTs-a.whenTs : a.whenTs-b.whenTs);
+
+  $('count').textContent = notes.length
+    ? list.length + ' of ' + notes.length + ' note' + (notes.length===1?'':'s')
+    : '';
+
+  if(!list.length){
+    timeline.innerHTML = notes.length
+      ? '<li class="empty"><div class="big">🔍</div><p>No notes match your search or filter.</p></li>'
+      : '<li class="empty"><div class="big">📝</div><p>No notes yet — add your first one above and start your timeline.</p></li>';
+    return;
+  }
+
+  // group by day
+  let html = '';
+  let lastKey = null;
+  list.forEach(n=>{
+    const key = new Date(n.whenTs); key.setHours(0,0,0,0);
+    const k = key.getTime();
+    if(k!==lastKey){
+      if(lastKey!==null) html += '</div>';
+      html += '<div class="daygroup"><div class="dayhead">'+esc(fmtDay(n.whenTs))+'</div>';
+      lastKey = k;
+    }
+    html += `<li class="note">
+      <div class="ntop">
+        <h3>${esc(n.title)}</h3>
+        <span class="ntime">🕐 ${esc(fmtTime(n.whenTs))}</span>
+      </div>
+      ${n.body ? `<div class="body">${esc(n.body)}</div>` : ''}
+      <span class="tag">${esc(n.tag||'General')}</span>
+      <div class="nactions">
+        <button class="iconbtn" data-edit="${n.id}">Edit</button>
+        <button class="iconbtn del" data-del="${n.id}">Delete</button>
+      </div>
+    </li>`;
+  });
+  html += '</div>';
+  timeline.innerHTML = html;
+
+  timeline.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>startEdit(b.dataset.edit)));
+  timeline.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>del(b.dataset.del)));
+}
+
+$('search').addEventListener('input', render);
+$('filterTag').addEventListener('change', render);
+$('sortBy').addEventListener('change', render);
+
+load();
+</script>
+<div id="factory-provenance" style="padding:14px 16px;text-align:center;font:11px/1.7 system-ui,sans-serif;color:#888;opacity:.85;">&#9874; Built with <a href="https://thefactory.refereeinnovations.com" style="color:#888;">The Factory</a> using third-party AI tools &#183; the app owner is responsible for its content &#183; Standard: UK law, aligned with the UN Universal Declaration of Human Rights &#183; <a href="https://thefactory.refereeinnovations.com/terms.html" style="color:#888;">Terms</a></div>
+</body>
+</html>
